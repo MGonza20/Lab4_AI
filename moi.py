@@ -80,37 +80,39 @@ def cross_val(X, y, k):
     np.random.shuffle(p)
     X = X[p]
     y = y[p]
-        
-    k_times = len(y) // k
+    
+    train_size = int(0.7 * len(y))
+    X_train, X_test = X[:train_size], X[train_size:]
+    y_train, y_test = y[:train_size], y[train_size:]
+    
+    k_times = len(y_train) // k
     test_errors, training_errors = [], []
     
     for i in range(k):
-        x_train = np.concatenate((X[:i*k_times], X[(i+1)*k_times:]))
-        y_train = np.concatenate((y[:i*k_times], y[(i+1)*k_times:]))
-        x_test = X[i*k_times:(i+1)*k_times]
-        y_test = y[i*k_times:(i+1)*k_times]
+        # Dividir datos en train y test
+        x_train_k = np.concatenate((X_train[:i*k_times], X_train[(i+1)*k_times:]))
+        y_train_k = np.concatenate((y_train[:i*k_times], y_train[(i+1)*k_times:]))
+        x_test_k = X_train[i*k_times:(i+1)*k_times]
+        y_test_k = y_train[i*k_times:(i+1)*k_times]
         
-        
-        theta_0 = np.zeros(X.shape[1])
-        theta_f = logistic_reg(x_train, y_train, theta_0, a=0.0001, n=1000)[0]
+        theta_0 = np.zeros(x_train_k.shape[1])
+        theta_f = logistic_reg(x_train_k, y_train_k, theta_0, a=0.0001, n=1000)[0]
         
         # Calcular error de entrenamiento
-        y_pred = sigmoid(np.dot(x_train, theta_f))
+        y_pred = sigmoid(np.dot(x_train_k, theta_f))
         y_pred = np.where(y_pred >= 0.5, 1, 0)
-        training_errors.append(np.mean(y_pred != y_train))
+        training_errors.append(np.mean(y_pred != y_train_k))
 
-        # Calcular error de train
-        y_pred = sigmoid(np.dot(x_test, theta_f))
+        # Calcular error de test
+        y_pred = sigmoid(np.dot(x_test_k, theta_f))
         y_pred = np.where(y_pred >= 0.5, 1, 0)
-        test_errors.append(np.mean(y_pred != y_test))
+        test_errors.append(np.mean(y_pred != y_test_k))
 
     mean_errors = [(training_errors[i] + test_errors[i]) / 2 for i in range(k)]
     best_degree = mean_errors.index(min(mean_errors))
     mean_error = min(mean_errors)
     
-
     return best_degree, 1-mean_error
 
-
-k = 5
+k = 20
 print('Mejor grado polinomial: ', cross_val(X, y, k)[0], " con un accuracy de ", cross_val(X, y, k)[1]*100, "%")
